@@ -1,0 +1,219 @@
+<head>
+	<title>timesheet</title>
+</head>
+
+<body>
+
+	{{> NavBar}}
+
+	<div class="container">
+		{{> TimeSheetCategories}}	
+	</div>
+	
+	{{> ReportModal}}
+
+</body>
+
+<template name="NavBar">
+	<nav class="navbar navbar-default" role="navigation">
+		<div class="container-fluid">
+			<!-- Brand and toggle get grouped for better mobile display -->
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand btn-show-timesheet" href="#">Time Sheet</a>
+			</div>
+
+			<!-- Collect the nav links, forms, and other content for toggling -->
+			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+				
+				<ul class="nav navbar-nav navbar-right">
+					<li>{{> editButton}}</li>
+					<li>{{> clockoutButton}}</li>
+					{{> loginButtons}}
+				</ul>
+
+			</div><!-- /.navbar-collapse -->
+		</div><!-- /.container-fluid -->
+	</nav>
+</template>
+
+<template name="editButton">
+	<button class="btn navbar-btn btn-edit-categories {{#unless editing}}btn-primary{{else}}btn-danger{{/unless}}" style="margin-right: 5px;">
+		<i class="fa fa-pencil"></i>
+	</button>
+</template>
+
+<template name="clockoutButton">
+	{{#if clockedIn}}
+		<button class="btn btn-danger btn-clockOut navbar-btn">Clock Out</button>
+	{{else}}
+		<button class="btn btn-success btn-clockIn navbar-btn">Clock In</button>
+	{{/if}}
+</template>
+
+<template name="TimeSheetCategories">
+	{{#form value=user}}
+		{{autosave this}}
+		{{#each categoryRows}}
+			{{> categoryRow}}
+		{{/each}}
+	{{/form}}
+</template>
+
+<template name="categoryRow">
+	<div class="row category-row">
+		{{#each children}}
+			<div class="col-md-3 col-sm-4">
+				{{> categoryButton}}
+			</div>
+		{{/each}}
+		{{#if editing}}
+			<div class="col-md-3 col-sm-4">
+				<div class="btn btn-block">
+					<p>Add Category</p>
+					<button class="btn btn-primary btn-add-category"><i class="fa fa-plus"></i></button>
+				</div>
+			</div>
+		{{/if}}
+	</div>
+</template>
+
+<template name="categoryButton">
+	<div class="btn btn-default btn-block btn-category {{#if clockedInx}} btn-success{{/if}}{{#if selected}} active{{/if}}">
+		<p>{{value.name}}</p>
+		<button class="btn btn-default btn-show-timesheet">
+			<i class="fa fa-share-square-o"></i>
+		</button>
+		<button class="btn btn-clockIn {{#if clockedIn}} btn-danger{{else}} btn-success{{/if}}">
+			<i class="fa fa-clock-o"></i>
+		</button>
+		{{#if editing}}
+			<button class="btn btn-primary btn-edit-category">
+				<i class="fa fa-pencil"></i>
+			</button>
+			<button class="btn btn-danger btn-remove-category">
+				<i class="fa fa-times"></i>
+			</button>
+		{{/if}}
+	</div>
+</template>
+
+<template name="form">
+	{{#with form}}
+		{{> UI.contentBlock this}}
+	{{/with}}
+</template>
+
+<template name="field">
+	{{#with ../field this}}
+		{{> UI.contentBlock this}}
+	{{/with}}
+</template>
+
+<template name="children">
+	{{#with ../field this}}
+		{{#each children}}
+			{{> UI.contentBlock this}}
+		{{/each}}
+	{{/with}}
+</template>
+
+<template name="textInput">
+	{{#with ../field this}}
+		<input
+			type="text"
+			name="{{name}}"
+			value="{{value}}"
+			class="form-control"
+			>
+	{{/with}}
+</template>
+
+<template name="dateInput">
+	{{#with ../field this}}
+		<input
+			type="date"
+			name="{{name}}"
+			value="{{value}}"
+			class="form-control"
+			>
+	{{/with}}
+</template>
+
+<template name="UserProfile">
+	{{#with profileForm}}
+		<form>
+			{{#with field 'profile'}}
+				{{> TextInput field 'firstName'}}
+				{{> TextInput field 'lastName'}}
+			{{/with}}
+			<button type="submit" class="btn btn-default">Save</button>
+		</form>
+	{{/with}}
+</template>
+
+<template name="TextInput">
+	<input
+		type="text"
+		name="{{name}}"
+		value="{{value}}"
+		placeholder="{{name}}"
+		class="form-control"
+		>
+</template>
+
+<template name="DateInput">
+	<input
+		type="date"
+		name="{{name}}"
+		value="{{value}}"
+		placeholder="{{name}}"
+		class="form-control"
+		>
+</template>
+
+<template name="ReportModal">
+	<div class="modal fade">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-body">
+					{{#form schema=schema value=item}}
+						<table class="table">
+							<thead>
+								<tr>
+									<th colspan="4">
+										<form class="form-inline">
+											<label>Hours</label>
+											{{> dateInput 'start'}}
+											{{> dateInput 'end'}}
+											<button type="button" class="btn btn-default pull-right" style="border-color: transparent;" data-dismiss="modal"><span aria-hidden="true" class="fa fa-times"></span><span class="sr-only">Close</span></button>
+										</form>
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{{#each stats}}
+									<tr>
+										<td><i class="fa fa-arrow-left"></i></td>
+										<th>{{name}}</th>
+										<td>{{time}}</td>
+										<td><i class="fa fa-arrow-right"></i></td>
+									</tr>
+								{{/each}}
+							</tbody>
+						</table>
+					{{/form}}
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					<button type="button" class="btn btn-primary">Export</button>
+				</div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+</template>

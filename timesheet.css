@@ -1,0 +1,9 @@
+/* CSS declarations go here */
+.category-row {
+	/*padding-top: 15px;*/
+	padding-bottom: 15px;
+	border-top: 2px gray solid;
+}
+.category-row .btn-category {
+	margin-top: 15px;
+}
