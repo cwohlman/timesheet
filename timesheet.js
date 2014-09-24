@@ -54,7 +54,13 @@ if (Meteor.isClient) {
 
   Template.clockoutButton.helpers({
     clockedIn: function () {
-      return !!currentTimeEntry();
+      var entry = currentTimeEntry();
+      if (this.path) {
+        var selectedCategories = entry && entry.categories;
+        return selectedCategories && _.contains(selectedCategories, _.last(this.path));
+      } else {
+        return !!entry;
+      }
     }
   });
 
@@ -63,151 +69,80 @@ if (Meteor.isClient) {
       clockOut();
     }
     , 'click .btn-clockIn': function () {
-      clockIn();
+      clockIn(this.path);
     }
   });
 
-  Template.editButton.events({
-    'click .btn-edit-categories': function () {
-      Session.set('editing', !Session.get('editing'));
-    }
-  });
-
-  Template.TimeSheetCategories.helpers({
-    user: function () {
-      return Meteor.user();
-    }
-    , categoryRows: function () {
-      var selectedCategories = Session.get('selectedCategories');
-      var categories = this.field('profile').field('categories');
-
-      var results = [];
-
-      _.find(selectedCategories, function (id) {
-        results.push(categories);
-        var cat = _.find(categories.children(), function (cat) {
-          return (cat.value._id == id);
-        });
-        if (!cat) return true;
-        else {
-          categories = cat.field('categories');
+  var userSchema = new Schema({
+    name: 'user'
+    , schema: {
+      _id: []
+      , profile: {
+        categories: {
+          isArray: true
+          , schema: {
+            _id: []
+            , name: []
+          }
         }
-      });
-
-      results.push(categories);
-
-      return results;
-    }
-    , autosave: function () {
-      var val = this.get();
-      if(val) Users.update(val._id, {$set: {
-        profile: val.profile
-      }});
-    }
-  });
-
-  Template.categoryRow.events({
-    'click .btn-add-category': function () {
-      var val = this.value || [];
-      var name = prompt('Category Name');
-      if (name) {
-        val.push({
-          _id: Random.id()
-          , name: name
-          , categories: []
-        });
-        this.set(val);
       }
     }
+  });
+
+  var timer = new Deps.Dependency();
+
+  // Invalidate timer every 15 seconds
+  Meteor.setInterval(function () {
+    timer.changed();
+  }, /*15 * */1000);
+
+  userSchema.schema.profile.schema.categories.schema.categories = userSchema.schema.profile.schema.categories;
+
+  Template.App.helpers({
+    user: function () {
+      return new ShadowObject(userSchema, Meteor.user());
+    }
+  });
+
+  Template.CategoryRows.helpers({
+    // it's nice having the currently selected item at the top,
+    // but it needs some animation or it drives the user batty.
+
+    // categories: function () {
+    //   var selectedCategories = Session.get('selectedCategories');
+    //   return _.sortBy(this.categories.concat(), function (a) {
+    //     return (selectedCategories && _.contains(selectedCategories, a._id)) ? -1 : 1;
+    //   });
+    // }
   });
 
   var getPath = function (parent) {
       var path = [];
-      while (parent) {
-        if (!parent.parent || parent.name != 'categories') break;
-        if (!isNaN(parent.index)) {
-          path.unshift(parent.value._id);
-        }
-        parent = parent.parent;
+      while (parent._id) {
+        path.unshift(parent._id);
+        parent = parent._.parent._.parent;
       }
-      return  path;
+      return path;
   };
 
-  Template.categoryButton.helpers({
-    clockedIn: function () {
-      var currentJob = TimeEntries.findOne({
-        _finished: {
-          $exists: false
-        }
-      });
-      var selectedCategories = currentJob && currentJob.categories;
-      return selectedCategories && _.contains(selectedCategories, this.value._id);
-    }
-    , selected: function () {
-      var selectedCategories = Session.get('selectedCategories');
-      return selectedCategories && _.contains(selectedCategories, this.value._id);
-    }
-  });
+  var formatHours = function (duration) {
+    var hours = Math.floor(duration.asHours());
+    var minutes = duration.minutes();
+    return hours + ":" + minutes + ":" + duration.seconds();
+  };
 
-  Template.categoryButton.events({
-    'click .btn-category': function () {
-      Session.set('selectedCategories', getPath(this));
-    }
-    , 'click .btn-edit-category': function (e, tmpl) {
-      e.stopPropagation();
-      var newName = prompt('New Name');
-      if (newName) this.field('name').set(newName);
-    }
-    , 'click .btn-clockIn': function (e, tmpl) {
-      // e.stopPropagation();
-      if (Template.categoryButton.clockedIn.apply(this)) {
-        clockOut();
-      } else {
-        var path = getPath(this);
-        clockIn(path);
-      }
-    }
-    , 'click .btn-show-timesheet': function (e, tmpl) {
-      e.stopPropagation();
-      Session.set('reportCategory', this.value._id);
-      $('.modal').modal();
-    }
-    , 'click .btn-remove-category': function (e, tmpl) {
-      e.stopPropagation();
-      if (confirm('remove category?')) {
-        var val = this.parent.get();
-        var id = this.value._id;
-        val = _.filter(val, function (a) {return a._id != id;});
-        this.parent.set(val);
-        Session.set('selectedCategories', getPath(this.parent));        
-      }
-    }
-  });
+  var getHours = function (category) {
 
-  Template.ReportModal.helpers({
-    schema: {
-      name: 'report options'
-      , schema: {
-        start: {
-          type: 'date'
-          , rules: []
-        }
-        , end: {
-          type: 'date'
-          , rules: []
-        }
-      }
-    }
-    , item: {}
-    , stats: function () {
+      var hasStart = !!Session.get('start');
+      var hasEnd = !!Session.get('end');
 
-      var hasStart = !!this.field('start').value;
+      if (!hasEnd) timer.depend();
 
-      var start = moment(this.field('start').value || new Date(0));
-      var end = moment(this.field('end').value || new Date()).endOf('day');
+      var start = moment(Session.get('start') || new Date(0));
+      var end = moment(Session.get('end') || new Date()).endOf('day');
 
       var query = {};
-      var category = Session.get('reportCategory');
+
       if (category) {
         query.categories = category;
       }
@@ -219,18 +154,18 @@ if (Meteor.isClient) {
 
       var processTimeSpan = function (a) {
         var time = _.reduce(entries, function (memo, entry) {
-          if (!entry.start || !entry.end) return memo;
+          if (!entry.start) return memo;
           var start = moment(entry.start).min(a.start).max(a.end);
-          var end = moment(entry.end).min(a.start).max(a.end);
+          var end = moment(entry.end || new Date()).min(a.start).max(a.end);
           return memo + end - start;
         }, 0);
 
         if (!time) {
-          a.time = "none";
+          a.time = "-";
         } else if (a.average) {
-          a.time = moment.duration(time / start.diff(end, a.average, true)).humanize();
+          a.time = formatHours(moment.duration(time / start.diff(end, a.average, true)));
         } else {
-          a.time = moment.duration(time).humanize();
+          a.time = formatHours(moment.duration(time));
         }
 
         return a;
@@ -295,60 +230,68 @@ if (Meteor.isClient) {
       } else {
         return _.map(averageSpans, processTimeSpan);
       }
-    }
-  });
-
-  UI.registerHelper('editing', function () {
-    return Session.get('editing');
-  });
-
-  // ---------
-
-  Template.form.form = function () {
-    return new Form(this.schema || {}, this.value);
   };
 
-  var inputHelpers = {
-
-  };
-
-  var inputEvents = {
-    'change input': function (e, tmpl) {
-      this.set(e.currentTarget.value);
+  Template.TimeSheet.events({
+    'click tr.categoryRow': function () {
+      var path = getPath(this);
+      Session.set('selectedCategories', path);
     }
-  };
-
-  Template.dateInput.events(inputEvents);
-  Template.textInput.events(inputEvents);
-
-  // ---------
-
-  Template.UserProfile.helpers({
-    profileForm: function () {
-      return new Form({}, Meteor.user());
+    , 'click .btn-add-category': function () {
+      var name = prompt('Category Name');
+      if (name) {
+        this.categories.push({
+          _id: Random.id()
+          , name: name
+          , categories: []
+        });
+      }
     }
-  });
-  Template.UserProfile.events({
-    'submit form': function (e, tmpl) {
-      e.preventDefault();
-      // return console.log(this.changes);
-      Users.update(this.value._id, {$set: this.value}, function (error) {
-        if (error) {
-          alert(error);
-        }
-      });
+    , 'click .btn-edit-category': function () {
+      var name = prompt('Category Name');
+      if (name) {
+        this.name = name;
+      }
     }
-  });
-  Template.TextInput.events({
-    'change input': function (e, tmpl) {
-      this.set(e.currentTarget.value);
+    , 'click .btn-remove-category': function () {
+      var remove = confirm('Are you sure you want to remove this category?');
+      if (remove) {
+        var categories = this._.parent;
+        var index = categories.indexOf(this);
+        categories.splice(index, 1);
+      }
     }
   });
-} else {
-  X = new Meteor.Collection('others');
-  X.allow({
-    update: function () {
-      return false;
+
+  Template.TimeSheet.helpers({
+    timeSpans: function () {
+      return getHours();
+    }
+    , autosave: function () {
+      var val = this._();
+      if(val) Users.update(val._id, {$set: {
+        profile: val.profile
+      }});
+    }
+  });
+
+  Template.CategoryRow.helpers({
+    path: function () {
+      return getPath(this);
+    }
+    , selected: function () {
+      var selectedCategories = Session.get('selectedCategories');
+      return selectedCategories && _.contains(selectedCategories, this._id);
+    }
+    , current: function () {
+      var selectedCategories = Session.get('selectedCategories');
+      return selectedCategories && _.last(selectedCategories) == this._id;
+    }
+    , timeSpans: function () {
+      return getHours(this._id);
+    }
+    , padding: function () {
+      return (getPath(this).length * 13) + 'px';
     }
   });
 }
