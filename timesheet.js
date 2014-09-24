@@ -234,10 +234,12 @@ if (Meteor.isClient) {
 
   Template.TimeSheet.events({
     'click tr.categoryRow': function () {
+      e.stopPropagation();
       var path = getPath(this);
       Session.set('selectedCategories', path);
     }
-    , 'click .btn-add-category': function () {
+    , 'click .btn-add-category': function (e) {
+      e.stopPropagation();
       var name = prompt('Category Name');
       if (name) {
         this.categories.push({
@@ -245,21 +247,28 @@ if (Meteor.isClient) {
           , name: name
           , categories: []
         });
+        Session.set('selectedCategories', getPath(_.last(this.categories)));
       }
     }
-    , 'click .btn-edit-category': function () {
+    , 'click .btn-edit-category': function (e) {
+      e.stopPropagation();
       var name = prompt('Category Name');
       if (name) {
         this.name = name;
       }
     }
-    , 'click .btn-remove-category': function () {
+    , 'click .btn-remove-category': function (e) {
+      e.stopPropagation();
       var remove = confirm('Are you sure you want to remove this category?');
       if (remove) {
         var categories = this._.parent;
         var index = categories.indexOf(this);
         categories.splice(index, 1);
+        Session.set('selectedCategories', getPath(categories._.parent));
       }
+    }
+    , 'click tfoot': function () {
+      Session.set('selectedCategories', null);
     }
   });
 
@@ -272,6 +281,9 @@ if (Meteor.isClient) {
       if(val) Users.update(val._id, {$set: {
         profile: val.profile
       }});
+    }
+    , selectedCategory: function () {
+      return !!Session.get('selectedCategories');
     }
   });
 

@@ -61,7 +61,6 @@
 			<thead>
 				<tr>
 					<th></th>
-					<th></th>
 					{{#each timeSpans}}
 						<th style="text-align: right;" class="col-sm-1">{{name}}</th>
 					{{/each}}
@@ -71,8 +70,27 @@
 			<tbody>
 				{{#with profile}}
 					{{> CategoryRows}}
+					{{#unless selectedCategory}}
+						<tr>
+							<td colspan="7" style="text-align: center;">
+								<button class="btn btn-link btn-add-category">
+									<i class="fa fa-plus"></i>
+								</button>
+							</td>
+						</tr>
+					{{/unless}}
 				{{/with}}
 			</tbody>
+			<tfoot>
+				<tr>
+					<th>
+						Total
+					</th>
+					{{#each timeSpans}}
+						<td style="text-align: right;">{{time}}</td>
+					{{/each}}
+				</tr>
+			</tfoot>
 		</table>
 	</div>
 </template>
@@ -88,8 +106,6 @@
 		<th style="padding-left: {{padding}};">
 			{{name}}
 		</th>
-		<td class="col-sm-1">
-		</td>
 		{{#each timeSpans}}
 			<td style="text-align: right;">
 				{{time}}
@@ -103,14 +119,20 @@
 				<button class="btn btn-primary btn-edit-category">
 					<i class="fa fa-pencil"></i>
 				</button>
-				<button class="btn btn-success btn-add-category">
-					<i class="fa fa-plus"></i>
-				</button>
 			{{/if}}
 			{{> clockoutButton path=path}}
 		</td>
 	</tr>
 	{{#if selected}}
 		{{> CategoryRows}}
+	{{/if}}
+	{{#if current}}
+		<tr>
+			<td colspan="7" style="padding-left: {{padding}};">
+				<button class="btn btn-link btn-add-category">
+					{{name}} / <i class="fa fa-plus"></i>
+				</button>
+			</td>
+		</tr>
 	{{/if}}
 </template>
