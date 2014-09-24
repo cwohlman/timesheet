@@ -34,7 +34,6 @@ if (Meteor.isClient) {
       , tick: new Date()
     };
     TimeEntries.insert(entry);
-    // Session.set('selectedJob', categories);
   };
 
   var clockOut = function (entry) {
@@ -83,6 +82,7 @@ if (Meteor.isClient) {
           , schema: {
             _id: []
             , name: []
+            , description: []
           }
         }
       }
@@ -94,13 +94,22 @@ if (Meteor.isClient) {
   // Invalidate timer every 15 seconds
   Meteor.setInterval(function () {
     timer.changed();
-  }, /*15 * */1000);
+  }, 15 * 1000);
 
   userSchema.schema.profile.schema.categories.schema.categories = userSchema.schema.profile.schema.categories;
 
+  var user = new ShadowObject(userSchema);
+
+  Meteor.startup(function () {
+    Deps.autorun(function () {
+      user._(Meteor.user());
+      console.log('user updated');
+    });
+  });
+
   Template.App.helpers({
     user: function () {
-      return new ShadowObject(userSchema, Meteor.user());
+      return user;
     }
   });
 
@@ -128,7 +137,7 @@ if (Meteor.isClient) {
   var formatHours = function (duration) {
     var hours = Math.floor(duration.asHours());
     var minutes = duration.minutes();
-    return hours + ":" + minutes + ":" + duration.seconds();
+    return hours + ":" + minutes /*+ ":" + duration.seconds()*/;
   };
 
   var getHours = function (category) {
@@ -233,7 +242,7 @@ if (Meteor.isClient) {
   };
 
   Template.TimeSheet.events({
-    'click tr.categoryRow': function () {
+    'click tr.categoryRow': function (e) {
       e.stopPropagation();
       var path = getPath(this);
       Session.set('selectedCategories', path);
@@ -251,11 +260,8 @@ if (Meteor.isClient) {
       }
     }
     , 'click .btn-edit-category': function (e) {
-      e.stopPropagation();
-      var name = prompt('Category Name');
-      if (name) {
-        this.name = name;
-      }
+      // e.stopPropagation();
+      Session.set('editing', !Session.get('editing'));
     }
     , 'click .btn-remove-category': function (e) {
       e.stopPropagation();
@@ -269,6 +275,11 @@ if (Meteor.isClient) {
     }
     , 'click tfoot': function () {
       Session.set('selectedCategories', null);
+    }
+    , 'change input': function (e, tmpl) {
+      var name = e.currentTarget.name;
+      var value = e.currentTarget.value;
+      this[name] = value;
     }
   });
 
@@ -305,5 +316,49 @@ if (Meteor.isClient) {
     , padding: function () {
       return (getPath(this).length * 13) + 'px';
     }
+    , editing: function () {
+      var selectedCategories = Session.get('selectedCategories');
+      return Session.get('editing') && selectedCategories && _.last(selectedCategories) == this._id;
+    }
+    , entries: function () {
+      return TimeEntries.find({
+        categories: this._id
+      });
+    }
   });
+
+  Template.TimeEntry.helpers({
+    start: function () {
+      timer.depend();
+      return moment(this.start).calendar();
+    }
+    , end: function () {
+      var end = moment(this.end);
+      var start = moment(this.start);
+      if (end.date() != start.date()) {
+        return end.calendar();
+      } else {
+        return end.format('hh:mm a');
+      }
+    }
+    , time: function () {
+      var end = this.end;
+      if (!end) {
+        end = new Date();
+        timer.depend();
+      }
+      return formatHours(moment.duration(end - this.start));
+    }
+  });
+
+  Meteor.startup(function () {
+    Deps.autorun(function () {
+      var entry = currentTimeEntry();
+      if (entry) {
+        $("#favicon").attr("href","favicon-clockedin.png");
+      } else {
+        $("#favicon").attr("href","favicon.png");
+      }
+    });
+  })
 }

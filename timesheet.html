@@ -1,5 +1,6 @@
 <head>
 	<title>timesheet</title>
+	<link id="favicon" rel="icon" sizes="16x16 32x32" href="/favicon.png">
 </head>
 
 <body>
@@ -105,6 +106,10 @@
 	<tr class="vert-align categoryRow {{#if current}}active{{/if}}">
 		<th style="padding-left: {{padding}};">
 			{{name}}
+			{{#if description}}
+				<br>
+				<small>{{description}}</small>
+			{{/if}}
 		</th>
 		{{#each timeSpans}}
 			<td style="text-align: right;">
@@ -116,13 +121,57 @@
 				<button class="btn btn-danger btn-remove-category">
 					<i class="fa fa-times"></i>
 				</button>
-				<button class="btn btn-primary btn-edit-category">
+				<button class="btn {{#if editing}}btn-primary{{else}}btn-default{{/if}} btn-edit-category">
 					<i class="fa fa-pencil"></i>
 				</button>
 			{{/if}}
 			{{> clockoutButton path=path}}
 		</td>
+
 	</tr>
+	{{#if editing}}
+		<tr>
+			<td colspan="20">
+				<div class="well" style="max-height: 400px; overflow: auto;">
+					<form class="">
+						<div class="form-group">
+							<label>Name</label>
+							<input
+								type="text"
+								name="name"
+								value="{{name}}"
+								class="form-control"
+								>
+						</div>
+						<div class="form-group">
+							<label>Description</label>
+							<input
+								type="text"
+								name="description"
+								value="{{description}}"
+								class="form-control"
+								>
+						</div>
+					</form>
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Start</th>
+								<th>End</th>
+								<th>Duration</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							{{#each entries}}
+								{{> TimeEntry}}
+							{{/each}}
+						</tbody>
+					</table>
+				</div>
+			</td>
+		</tr>
+	{{/if}}
 	{{#if selected}}
 		{{> CategoryRows}}
 	{{/if}}
@@ -135,4 +184,13 @@
 			</td>
 		</tr>
 	{{/if}}
+</template>
+
+<template name="TimeEntry">
+	<tr>
+		<td>{{start}}</td>
+		<td>{{end}}</td>
+		<td>{{time}}</td>
+		<td></td>
+	</tr>
 </template>
