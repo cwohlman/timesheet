@@ -108,8 +108,12 @@ if (Meteor.isClient) {
   });
 
   Template.App.helpers({
-    user: function () {
-      return user;
+    schema: function () {
+      return userSchema
+    }
+    , user: function () {
+      return Meteor.user();
+      // return new ShadowObject(userSchema, Meteor.user());
     }
   });
 
@@ -164,8 +168,10 @@ if (Meteor.isClient) {
       var processTimeSpan = function (a) {
         var time = _.reduce(entries, function (memo, entry) {
           if (!entry.start) return memo;
-          var start = moment(entry.start).min(a.start).max(a.end);
-          var end = moment(entry.end || new Date()).min(a.start).max(a.end);
+          // var start = moment(entry.start).min(a.start).max(a.end);
+          // var end = moment(entry.end || new Date()).min(a.start).max(a.end);
+          var start = Math.min(Math.max(entry.start, a.start), a.end);
+          var end = Math.min(Math.max(entry.end || new Date(), a.start), a.end);
           return memo + end - start;
         }, 0);
 
@@ -276,10 +282,13 @@ if (Meteor.isClient) {
     , 'click tfoot': function () {
       Session.set('selectedCategories', null);
     }
-    , 'change input': function (e, tmpl) {
-      var name = e.currentTarget.name;
-      var value = e.currentTarget.value;
-      this[name] = value;
+    , 'autosave ': function (e, tmpl) {
+      var self = this;
+      Users.update(Meteor.userId(), {
+        $set: {
+          profile: self._().profile
+        }
+      });
     }
   });
 

@@ -11,9 +11,10 @@
 
 <template name="App">
 	{{> NavBar}}
-
-	{{> TimeSheet user}}
+	{{> TimeSheet schema=schema item=user template="NoOp"}}
 </template>
+
+<template name="NoOp"><div>{{> UI.contentBlock}}</div></template>
 
 <template name="NavBar">
 	<nav class="navbar navbar-default" role="navigation">
@@ -56,44 +57,45 @@
 </template>
 
 <template name="TimeSheet">
-	{{autosave}}
-	<div class="table-responsive">
-		<table class="table">
-			<thead>
-				<tr>
-					<th></th>
-					{{#each timeSpans}}
-						<th style="text-align: right;" class="col-sm-1">{{name}}</th>
-					{{/each}}
-					<th></th>
-				</tr>
-			</thead>
-			<tbody>
-				{{#with profile}}
-					{{> CategoryRows}}
-					{{#unless selectedCategory}}
-						<tr>
-							<td colspan="7" style="text-align: center;">
-								<button class="btn btn-link btn-add-category">
-									<i class="fa fa-plus"></i>
-								</button>
-							</td>
-						</tr>
-					{{/unless}}
-				{{/with}}
-			</tbody>
-			<tfoot>
-				<tr>
-					<th>
-						Total
-					</th>
-					{{#each timeSpans}}
-						<td style="text-align: right;">{{time}}</td>
-					{{/each}}
-				</tr>
-			</tfoot>
-		</table>
-	</div>
+	{{#Form}}
+		<div class="table-responsive">
+			<table class="table">
+				<thead>
+					<tr>
+						<th></th>
+						{{#each timeSpans}}
+							<th style="text-align: right;" class="col-sm-1">{{name}}</th>
+						{{/each}}
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					{{#with profile}}
+						{{> CategoryRows}}
+						{{#unless selectedCategory}}
+							<tr>
+								<td colspan="7" style="text-align: center;">
+									<button class="btn btn-link btn-add-category">
+										<i class="fa fa-plus"></i>
+									</button>
+								</td>
+							</tr>
+						{{/unless}}
+					{{/with}}
+				</tbody>
+				<tfoot>
+					<tr>
+						<th>
+							Total
+						</th>
+						{{#each timeSpans}}
+							<td style="text-align: right;">{{time}}</td>
+						{{/each}}
+					</tr>
+				</tfoot>
+			</table>
+		</div>
+	{{/Form}}
 </template>
 
 <template name="CategoryRows">
@@ -136,21 +138,31 @@
 					<form class="">
 						<div class="form-group">
 							<label>Name</label>
-							<input
+							<!-- <input
 								type="text"
 								name="name"
 								value="{{name}}"
 								class="form-control"
-								>
+								> -->
+							{{> TextInput
+								name="name"
+								class="form-control"
+								placeholder="A descriptive name for this client or job"
+								}}
 						</div>
 						<div class="form-group">
 							<label>Description</label>
-							<input
+							<!-- <input
 								type="text"
 								name="description"
 								value="{{description}}"
 								class="form-control"
-								>
+								> -->
+							{{> TextInput
+								name="description"
+								class="form-control"
+								placeholder="A longer description of the work you will do"
+								}}
 						</div>
 					</form>
 					<table class="table">
