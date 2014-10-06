@@ -7,13 +7,13 @@ meteor-platform
 autopublish
 insecure
 forms
-schema
-rules
+cwohlman:schema
+cwohlman:rules
 mrt:bootstrap-3
 mrt:accounts-ui-bootstrap-3
 accounts-password
 chrismbeckett:fontawesome4
 mrt:momentjs
 reactive-var
-shadow-objects
+cwohlman:shadow-objects
 

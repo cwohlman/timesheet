@@ -5,6 +5,8 @@ Package.describe({
 Package.on_use(function (api, where) {
   api.use('templating');
   api.use('ui');
+  api.use('cwohlman:shadow-objects@0.1.0');
+  api.use('reactive-var');
   api.add_files('forms.html', ['client']);
   api.add_files('forms.js', ['client']);
 });
